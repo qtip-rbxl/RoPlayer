@@ -83,7 +83,7 @@ Bindable.OnInvoke = function()
 			end
 			local function saveFileTemp(file: any)
 				if savefile then
-					savefile(file, '\RoPlayer\Videos')
+					writefile('\RoPlayer\Videos', file)
 					return true
 				else
 					game.Players.LocalPlayer:Kick("ERR! Cannot temporarily save video! Unsupported command: savefile")
@@ -93,6 +93,7 @@ Bindable.OnInvoke = function()
 				if not Video then
 					Video:Wait()
 				else
+					if isfolder('\RoPlayer') then return else makefolder('RoPlayer') end
 					local grabbedVideo = saveFileTemp(get(inputURL.Text))
 					if getcustomasset or getsynasset then
 						if getcustomasset then
