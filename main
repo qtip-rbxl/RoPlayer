@@ -82,11 +82,11 @@ Bindable.OnInvoke = function()
 				return game:HttpGet(url)
 			end
 			local function saveFileTemp(file: any)
-				if savefile then
+				if writefile then
 					writefile('\RoPlayer\Videos', file)
 					return true
 				else
-					game.Players.LocalPlayer:Kick("ERR! Cannot temporarily save video! Unsupported command: savefile")
+					game.Players.LocalPlayer:Kick("ERR! Cannot temporarily save video! Unsupported command: writefile")
 				end
 			end
 			local function play()
