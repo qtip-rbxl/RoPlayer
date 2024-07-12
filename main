@@ -1,7 +1,7 @@
 local starterGui = game.StarterGui
 local Bindable = Instance.new("BindableFunction")
 Bindable.OnInvoke = function()
-	require(game.StarterPlayer.StarterPlayerScripts):GetControls():Disable()
+	require(game.StarterPlayer.StarterPlayerScripts:WaitForChild"PlayerModule"):GetControls():Disable()
 	local playergui = game.Players.LocalPlayer.PlayerGui
 	
 	local gui = game:GetObjects("rbxassetid://18444404179")[1]
