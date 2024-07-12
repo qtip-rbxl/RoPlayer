@@ -1,129 +1,138 @@
 local starterGui = game.StarterGui
 local Bindable = Instance.new("BindableFunction")
 Bindable.OnInvoke = function()
-	require(game.StarterPlayer.StarterPlayerScripts:WaitForChild"PlayerModule"):GetControls():Disable()
-	local playergui = game.Players.LocalPlayer.PlayerGui
-	
-	local gui = game:GetObjects("rbxassetid://18444404179")[1]
-	local URLChoose = gui.URLChoose
-	local RootFrame = gui.RootFrame
-	local Controls = RootFrame.Controls
-	local InfoBar = RootFrame.InfoBar
-	local timeText = InfoBar.TIME
-	local VideoFrame = RootFrame.VideoFrame
-	local Video = VideoFrame.SourcePlayback
-	local inputURL = URLChoose.Input
-	local playpause = Controls.PlayPause
-	local stop = Controls.Stop
-	local rewind = Controls.Rewind
-	local record = Controls.Record
-	local setting = Controls.Settings
-	
-	gui.Parent = playergui
-	
-	local coregui = game.CoreGui
-	local lighting = game:GetService("Lighting")
-	
-	if Video.Playing then
-		Video.Parent = game.ReplicatedFirst
-		Video.Playing = false
-		Video.TimePosition = 0
-	end
-	
-	for _,obj in pairs(playergui:GetChildren()) do
-		if obj.Name == not "RoPlayer" then
-			obj:Destroy()
-		end
-	end
-	for _,obj in pairs(lighting:GetChildren()) do
-		obj:Destroy()
-	end
-	for _,obj in pairs(workspace:GetChildren()) do
-		if obj.Name == "Terrain" then
-			obj:Clear()
-		else
-			obj:Destroy()
-		end
-	end
-	--for _,obj in pairs(coregui:GetChildren()) do --Muted for Play-Testing in Studio.
-		--obj:Destroy()
-	--end
-	
-	game.DescendantAdded:Connect(function(obj)
-		if not string.find(obj.Parent:GetFullName(), gui:GetFullName()) then
-			obj:Destroy()
-		end
-	end)
-	
-	gui.Enabled = true
-	
-	local function formatTime(seconds)
-		local minutes = math.floor(seconds / 60)
-		local remainingSeconds = math.floor(seconds % 60)
-		return string.format("%02d:%02d", minutes, remainingSeconds)
-	end
+    local playergui = game.Players.LocalPlayer.PlayerGui
+    
+    local gui = game:GetObjects("rbxassetid://18444404179")[1]
+    local URLChoose = gui.URLChoose
+    local RootFrame = gui.RootFrame
+    local Controls = RootFrame.Controls
+    local InfoBar = RootFrame.InfoBar
+    local timeText = InfoBar.TIME
+    local VideoFrame = RootFrame.VideoFrame
+    local Video = VideoFrame.SourcePlayback
+    local inputURL = URLChoose.Input
+    local enterButton = URLChoose.Enter
+    local playpause = Controls.PlayPause
+    local stop = Controls.Stop
+    local rewind = Controls.Rewind
+    local record = Controls.Record
+    local setting = Controls.Settings
+    
+    gui.Parent = playergui
+    
+    local coregui = game.CoreGui
+    local lighting = game:GetService("Lighting")
+    
+    if Video.Playing then
+        Video.Parent = game.ReplicatedFirst
+        Video.Playing = false
+        Video.TimePosition = 0
+    end
+    
+    for _, obj in pairs(playergui:GetChildren()) do
+        if obj.Name ~= "RoPlayer" then
+            obj:Destroy()
+        end
+    end
+    for _, obj in pairs(lighting:GetChildren()) do
+        obj:Destroy()
+    end
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj.Name == "Terrain" then
+            obj:Clear()
+        else
+            obj:Destroy()
+        end
+    end
+    
+    game.Workspace.DescendantAdded:Connect(function(obj)
+        if not string.find(obj.Parent:GetFullName(), gui:GetFullName()) then
+            obj:Destroy()
+        end
+    end)
+    
+    gui.Enabled = true
+    
+    local function formatTime(seconds)
+        local minutes = math.floor(seconds / 60)
+        local remainingSeconds = math.floor(seconds % 60)
+        return string.format("%02d:%02d", minutes, remainingSeconds)
+    end
 
-	local function updateTextLabel()
-		local currentTime = Video.TimePosition
-		local totalTime = Video.TimeLength
-		timeText.Text = formatTime(currentTime) .. "/" .. formatTime(totalTime)
-	end
+    local function updateTextLabel()
+        local currentTime = Video.TimePosition
+        local totalTime = Video.TimeLength
+        timeText.Text = formatTime(currentTime) .. "/" .. formatTime(totalTime)
+    end
+    
+    enterButton.MouseButton1Click:Connect(function()
+        URLChoose.Visible = false
+        RootFrame.Interactable = true
+        
+        local function play()
+            if not Video then
+                Video:Wait()
+            else
+                if not isfolder("RoPlayer") then
+                    makefolder("RoPlayer")
+                end
+                local pathVar = 'RoPlayer/video_'.. tostring(os.time()) .. '.mp4'
+                local success, response = pcall(function()
+                    return game:HttpGet(inputURL.Text)
+                end)
 
-	Video:GetPropertyChangedSignal("TimePosition"):Connect(updateTextLabel)
+                if success then
+                    writefile(pathVar, response)
+                    
+                    local maxRetries = 50
+                    local retries = 0
+                    while not isfile(pathVar) and retries < maxRetries do
+                        task.wait(0.1)
+                        retries = retries + 1
+                    end
+                    
+                    if retries >= maxRetries then
+                        error("File did not register in time.")
+                    end
 
-	Video.Loaded:Connect(function()
-		updateTextLabel()
-	end)
-	
-	inputURL.FocusLost:Connect(function(enterPressed)
-		if enterPressed then
-			RootFrame.Interactable = true
-			local function get(url: string)
-				return game:HttpGet(url)
-			end
-			local function saveFileTemp(file: any)
-				if writefile then
-					writefile('\RoPlayer\Videos', file)
-					return true
-				else
-					game.Players.LocalPlayer:Kick("ERR! Cannot temporarily save video! Unsupported command: writefile")
-				end
-			end
-			local function play()
-				if not Video then
-					Video:Wait()
-				else
-					if isfolder('\RoPlayer') then return else makefolder('RoPlayer') end
-					local grabbedVideo = saveFileTemp(get(inputURL.Text))
-					if getcustomasset or getsynasset then
-						if getcustomasset then
-							Video.Video = getcustomasset(grabbedVideo)
-							Video.Parent = VideoFrame
-							Video:Play()
-							Video.Ended:Connect(function()
-								Video.Playing = false
-								Video.Parent = game.ReplicatedFirst
-							end)
-						else
-							Video.Video = getsynasset(grabbedVideo)
-							Video.Parent = VideoFrame
-							Video:Play()
-							Video.Ended:Connect(function()
-								Video.Playing = false
-								Video.Parent = game.ReplicatedFirst
-							end)
-						end
-					else
-						game.Players.LocalPlayer:Kick("ERR! Cannot parse downloaded video! Unsupported command: getcustomasset / getsynasset")
-					end
-				end
-			end
-			play()
-			playpause.MouseButton1Click:Connect(function()
-				Bindable:Invoke()
-			end)
-		end
-	end)
+                    local videoAsset
+                    if getsynasset then
+                        videoAsset = getsynasset(pathVar)
+                    else
+                        videoAsset = getcustomasset(pathVar)
+                    end
+                    Video.Video = videoAsset
+                    Video.Parent = VideoFrame
+                    Video.Ended:Connect(function()
+                        Video.Playing = false
+                        Video.Parent = game.ReplicatedFirst
+                    end)
+                    Video:GetPropertyChangedSignal("TimePosition"):Connect(updateTextLabel)
+                    Video.Loaded:Connect(function()
+                        updateTextLabel()
+                    end)
+                    Video:Play()
+                else
+                    error("Failed to download video: " .. tostring(response))
+                end
+            end
+        end
+        
+        play()
+        stop.MouseButton1Click:Connect(function()
+            URLChoose.Visible = true
+            Bindable:Invoke()
+        end)
+        playpause.MouseButton1Click:Connect(function()
+            if Video.Playing then
+                Video:Pause()
+            else
+                Video:Play()
+            end
+        end)
+    end)
 end
-wait(3)
+
+task.wait()
 Bindable:Invoke()
