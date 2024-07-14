@@ -1,8 +1,8 @@
 local starterGui = game.StarterGui
 local Bindable = Instance.new("BindableFunction")
-
 Bindable.OnInvoke = function()
     local playergui = game.Players.LocalPlayer.PlayerGui
+    
     local gui = game:GetObjects("rbxassetid://18444404179")[1]
     local URLChoose = gui.URLChoose
     local RootFrame = gui.RootFrame
@@ -11,25 +11,24 @@ Bindable.OnInvoke = function()
     local timeText = InfoBar.TIME
     local VideoFrame = RootFrame.VideoFrame
     local Video = VideoFrame.SourcePlayback
-    local inputURL = URLChoose.Input
-    local enterButton = URLChoose.Enter
     local playpause = Controls.PlayPause
     local stop = Controls.Stop
     local rewind = Controls.Rewind
     local record = Controls.Record
     local setting = Controls.Settings
+    local fileList = URLChoose.List
     
     gui.Parent = playergui
-
+    
     local coregui = game.CoreGui
     local lighting = game:GetService("Lighting")
-
+    
     if Video.Playing then
         Video.Parent = game.ReplicatedFirst
         Video.Playing = false
         Video.TimePosition = 0
     end
-
+    
     for _, obj in pairs(playergui:GetChildren()) do
         if obj.Name ~= "RoPlayer" then
             obj:Destroy()
@@ -38,22 +37,26 @@ Bindable.OnInvoke = function()
     for _, obj in pairs(lighting:GetChildren()) do
         obj:Destroy()
     end
-    for _, obj in pairs(workspace:GetChildren()) do
-        if obj.Name == "Terrain" then
-            obj:Clear()
-        else
-            obj:Destroy()
+    for _, obj in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
+        if obj:IsA("MeshPart") or obj:IsA("Part") then
+            obj.Anchored = true
         end
     end
 
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj.Name == not game.Players.LocalPlayer.Name then
+            obj:Remove()
+        end
+    end
+    
     game.Workspace.DescendantAdded:Connect(function(obj)
         if not string.find(obj.Parent:GetFullName(), gui:GetFullName()) then
             obj:Destroy()
         end
     end)
-
+    
     gui.Enabled = true
-
+    
     local function formatTime(seconds)
         local minutes = math.floor(seconds / 60)
         local remainingSeconds = math.floor(seconds % 60)
@@ -65,36 +68,36 @@ Bindable.OnInvoke = function()
         local totalTime = Video.TimeLength
         timeText.Text = formatTime(currentTime) .. "/" .. formatTime(totalTime)
     end
-
-    enterButton.MouseButton1Click:Connect(function()
-        URLChoose.Visible = false
-        RootFrame.Interactable = true
-
-        local function play()
-            if not Video then
-                Video:Wait()
-            else
-                if not isfolder("RoPlayer") then
-                    makefolder("RoPlayer")
-                end
-                local pathVar = 'RoPlayer/video_' .. tostring(os.time()) .. '.mp4'
-                local success, response = pcall(function()
-                    return game:HttpGet(inputURL.Text)
-                end)
-
-                if success then
-                    writefile(pathVar, response)
-
-                    repeat
-                        task.wait(0.1)
-                    until isfile(pathVar)
-
+    
+    local files = listfiles("RoPlayer")
+    for _, filePath in ipairs(files) do
+        local fileName = string.gsub(filePath, "RoPlayer\\\", "")
+        local fileButton = Instance.new("TextButton")
+        fileButton.Size = UDim2.new(1, 0, 0, 50)
+        fileButton.BackgroundColor3 = Color3.fromRGB(36, 35, 35)
+        fileButton.BorderSizePixel = 0
+        fileButton.TextColor3 = Color3.fromRGB(220, 220, 220)
+        fileButton.TextScaled = true
+        fileButton.Font = Enum.Font.Nunito
+        fileButton.Text = fileName
+        fileButton.Parent = fileList
+        
+        fileButton.MouseButton1Click:Connect(function()
+            URLChoose.Visible = false
+            RootFrame.Interactable = true
+    
+            local function play()
+                if not Video then
+                    Video:Wait()
+                else
                     local videoAsset
                     if getsynasset then
-                        videoAsset = getsynasset(pathVar)
+                        videoAsset = getsynasset(filePath)
                     else
-                        videoAsset = getcustomasset(pathVar)
+                        videoAsset = getcustomasset(filePath)
                     end
+                    task.wait(7)
+
                     Video.Video = videoAsset
                     Video.Parent = VideoFrame
                     Video.Ended:Connect(function()
@@ -106,24 +109,36 @@ Bindable.OnInvoke = function()
                         updateTextLabel()
                     end)
                     Video:Play()
-                else
-                    error("Failed to download video: " .. tostring(response))
                 end
             end
-        end
+    
+            play()
+            stop.MouseButton1Click:Connect(function()
+                URLChoose.Visible = true
+                Bindable:Invoke()
+            end)
+            playpause.MouseButton1Click:Connect(function()
+                if Video.Playing then
+                    Video:Pause()
+                else
+                    Video:Play()
+                end
+            end)
+        end)
+    end
 
-        play()
-        stop.MouseButton1Click:Connect(function()
-            URLChoose.Visible = true
-            Bindable:Invoke()
-        end)
-        playpause.MouseButton1Click:Connect(function()
-            if Video.Playing then
-                Video:Pause()
-            else
-                Video:Play()
-            end
-        end)
+    local recording = false
+    record.MouseButton1Click:Connect(function()
+        local VirtualInputManager = game:GetService("VirtualInputManager")
+        recording = not recording
+        
+        if recording then
+            record.BackgroundColor3 = Color3.fromRGB(158, 3, 20)
+            VirtualInputManager:StartRecording()
+        else
+            record.BackgroundColor3 = Color3.fromRGB(210, 210, 210)
+            VirtualInputManager:StopRecording()
+        end
     end)
 end
 
