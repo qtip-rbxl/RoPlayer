@@ -1,8 +1,8 @@
 local starterGui = game.StarterGui
 local Bindable = Instance.new("BindableFunction")
+
 Bindable.OnInvoke = function()
     local playergui = game.Players.LocalPlayer.PlayerGui
-    
     local gui = game:GetObjects("rbxassetid://18444404179")[1]
     local URLChoose = gui.URLChoose
     local RootFrame = gui.RootFrame
@@ -20,16 +20,16 @@ Bindable.OnInvoke = function()
     local setting = Controls.Settings
     
     gui.Parent = playergui
-    
+
     local coregui = game.CoreGui
     local lighting = game:GetService("Lighting")
-    
+
     if Video.Playing then
         Video.Parent = game.ReplicatedFirst
         Video.Playing = false
         Video.TimePosition = 0
     end
-    
+
     for _, obj in pairs(playergui:GetChildren()) do
         if obj.Name ~= "RoPlayer" then
             obj:Destroy()
@@ -45,15 +45,15 @@ Bindable.OnInvoke = function()
             obj:Destroy()
         end
     end
-    
+
     game.Workspace.DescendantAdded:Connect(function(obj)
         if not string.find(obj.Parent:GetFullName(), gui:GetFullName()) then
             obj:Destroy()
         end
     end)
-    
+
     gui.Enabled = true
-    
+
     local function formatTime(seconds)
         local minutes = math.floor(seconds / 60)
         local remainingSeconds = math.floor(seconds % 60)
@@ -65,11 +65,11 @@ Bindable.OnInvoke = function()
         local totalTime = Video.TimeLength
         timeText.Text = formatTime(currentTime) .. "/" .. formatTime(totalTime)
     end
-    
+
     enterButton.MouseButton1Click:Connect(function()
         URLChoose.Visible = false
         RootFrame.Interactable = true
-        
+
         local function play()
             if not Video then
                 Video:Wait()
@@ -77,24 +77,17 @@ Bindable.OnInvoke = function()
                 if not isfolder("RoPlayer") then
                     makefolder("RoPlayer")
                 end
-                local pathVar = 'RoPlayer/video_'.. tostring(os.time()) .. '.mp4'
+                local pathVar = 'RoPlayer/video_' .. tostring(os.time()) .. '.mp4'
                 local success, response = pcall(function()
                     return game:HttpGet(inputURL.Text)
                 end)
 
                 if success then
                     writefile(pathVar, response)
-                    
-                    local maxRetries = 50
-                    local retries = 0
-                    while not isfile(pathVar) and retries < maxRetries do
+
+                    repeat
                         task.wait(0.1)
-                        retries = retries + 1
-                    end
-                    
-                    if retries >= maxRetries then
-                        error("File did not register in time.")
-                    end
+                    until isfile(pathVar)
 
                     local videoAsset
                     if getsynasset then
@@ -118,7 +111,7 @@ Bindable.OnInvoke = function()
                 end
             end
         end
-        
+
         play()
         stop.MouseButton1Click:Connect(function()
             URLChoose.Visible = true
